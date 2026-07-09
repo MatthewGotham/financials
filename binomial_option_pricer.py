@@ -2,7 +2,7 @@
 @author: Matthew Gotham
 
 Functions for pricing and analyzing European-style and American-style
-options, using the binomial options pricicing model.
+options, using the binomial options pricing model.
 """
 
 import numpy as np
