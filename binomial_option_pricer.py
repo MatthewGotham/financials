@@ -87,7 +87,8 @@ def get_premium(price:float, strike:float, dte:int, rfr:float, vol:float,
                 call:bool, american:bool=False, div_yield:float=0,
                 days_in_year:int=252) -> float:
     """
-    Price an option based on the usual parameters.
+    Price an option based on the usual parameters, and get (some of) the
+    associated Greeks.
     
     Parameters
     ----------
@@ -167,11 +168,42 @@ def get_iv(price:float, strike:float, premium:float, dte:int, rfr:float,
     return res.x
 
 
-def get_greeks(*args, **kwargs) -> float:
+def get_premium_greeks(*args, **kwargs) -> float:
     """
-    Option Greeks.
+    Price an option based on the usual parameters, and get (some of) the
+    associated Greeks.
+    
+    Parameters
+    ----------
+    price:
+        The current price of the underlying.
+    strike:
+        The strike price of the option.
+    dte:
+        The number of days to expiry. Set in combination with days_in_year
+        (it's up to you whether to use calendar or trading days).
+    rfr:
+        The annualized "risk-free" interest rate.
+    vol:
+        The annualized expected/implied volatility of the underlying.
+    call:
+        True for a call option, False for a put.
+    american:
+        True for an American-style option, False (default) for European-
+        style.
+    div_yield:
+        The annualized dividend yield for the underlying (default: 0)
+    days_in_year:
+        Set to 365 (or 365.25?) if you want to count the days to expiry
+        as calendar days, otherwise some other number (default: 252) if you
+        want to use trading days.
+    
+    Returns
+    -------
+    A dict with values for Premium, Delta, Gamma, and Theta.
     """
     binom_grid, value_grid = get_grids(*args, **kwargs)
+    premium = value_grid[0,0]
     delta = (value_grid[0,1]-value_grid[1,1])/(binom_grid[0,1]-binom_grid[1,1])
     theta = (value_grid[1,2]-value_grid[0,0])/2
     delta_up = (value_grid[0,2]-value_grid[1,2])/(binom_grid[0,2]
@@ -179,6 +211,7 @@ def get_greeks(*args, **kwargs) -> float:
     delta_down = (value_grid[1,2]-value_grid[2,2])/(binom_grid[1,2]
                                                     -binom_grid[2,2])
     gamma = (delta_up-delta_down)/(binom_grid[0,1]-binom_grid[1,1])
-    return {'Delta': delta,
+    return {'Premium': premium,
+            'Delta': delta,
             'Gamma': gamma,
             'Theta': theta}
