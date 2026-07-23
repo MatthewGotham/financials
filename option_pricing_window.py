@@ -7,10 +7,11 @@ using the code in binomial_option_pricer.py.
 
 #%% Preliminaries
 
-
+from numpy import nan
 import tkinter as tk
 from tkinter import ttk, messagebox
-from binomial_option_pricer import get_premium_greeks, get_iv
+from binomial_option_pricer import get_premium_greeks, get_iv, get_vega,\
+    get_rho
 
 
 # Main window
@@ -46,13 +47,21 @@ def calculate_premium():
 
         results = get_premium_greeks(price, strike, dte, rfr, vol, call,
                                      american, div_yield, days_in_year)
+        vega_res = get_vega(price, strike, dte, rfr, vol, call, american,
+                            div_yield, days_in_year)
+        rho_res = get_rho(price, strike, dte, rfr, vol, call, american,
+                          div_yield, days_in_year)
 
-        for output,result in [(premium,results['Premium']),
-                              (delta,results['Delta']),
-                              (gamma,results['Gamma']),
-                              (theta,results['Theta'])]:
+        for output,result in [(premium, results['Premium']),
+                              (delta, results['Delta']),
+                              (gamma, results['Gamma']),
+                              (theta, results['Theta']),
+                              (vega, vega_res),
+                              (rho, rho_res)]:
             output.delete("1.0", tk.END)
-            output.insert(tk.END, str(round(result,4)))
+            output.insert(tk.END, "-" if result is nan else
+                          str(round(result,4)))
+        
 
     except Exception as e:
         messagebox.showerror("Error", str(e))
@@ -106,20 +115,37 @@ for pct_row in pct_rows:
 ttk.Label(tab1, text='days in a year').grid(row=4, column=3)
 
 # Run button
-ttk.Button(tab1, text="Calculate", command=calculate_premium).grid(
+ttk.Button(tab1, text="CALCULATE", command=calculate_premium).grid(
     row=0, column=5, columnspan=3, pady=(0,15))
 
 # Outputs
 ttk.Label(tab1, text="Premium").grid(row=1, column=5, sticky="w",
                                          padx=15, pady=2)
 ttk.Label(tab1, text='$').grid(row=1, column=6)
+#
 ttk.Label(tab1, text='Delta').grid(row=2, column=5, sticky="w", padx=15,
                                     pady=2)
+ttk.Label(tab1, text='$').grid(row=2, column=6)
+ttk.Label(tab1, text='/$').grid(row=2, column=8, sticky="w")
+#
 ttk.Label(tab1, text='Gamma').grid(row=3, column=5, sticky="w", padx=15,
                                     pady=2)
-ttk.Label(tab1, text='Theta').grid(row=4, column=5, sticky="w", padx=15,
-                                    pady=2)
+ttk.Label(tab1, text='$').grid(row=3, column=6)
+ttk.Label(tab1, text='/$²').grid(row=3, column=8, sticky="w")
 #
+ttk.Label(tab1, text='Theta').grid(row=4, column=5, sticky="w", padx=15,
+                                   pady=2)
+ttk.Label(tab1, text='$').grid(row=4, column=6)
+ttk.Label(tab1, text='/day').grid(row=4, column=8, sticky="w")
+#
+ttk.Label(tab1, text='Vega').grid(row=5, column=5, sticky="w", padx=15, pady=2)
+ttk.Label(tab1, text='$').grid(row=5, column=6)
+ttk.Label(tab1, text='/pp').grid(row=5, column=8, sticky="w")
+#
+ttk.Label(tab1, text='Rho').grid(row=6, column=5, sticky="w", padx=15, pady=2)
+ttk.Label(tab1, text='$').grid(row=6, column=6)
+ttk.Label(tab1, text='/pp').grid(row=6, column=8, sticky="w")
+# Results
 premium = tk.Text(tab1, height=1, width=8)
 premium.grid(row=1, column=7)
 delta = tk.Text(tab1, height=1, width=8)
@@ -128,6 +154,10 @@ gamma = tk.Text(tab1, height=1, width=8)
 gamma.grid(row=3, column=7)
 theta = tk.Text(tab1, height=1, width=8)
 theta.grid(row=4, column=7)
+vega = tk.Text(tab1, height=1, width=8)
+vega.grid(row=5, column=7)
+rho = tk.Text(tab1, height=1, width=8)
+rho.grid(row=6, column=7)
 
 
 #%% Caculated implied volatility tab
@@ -149,11 +179,18 @@ def calculate_iv():
                              div_yield, days_in_year)
         results2 = get_premium_greeks(price, strike, dte, rfr, implied_vol,
                                       call, american, div_yield, days_in_year)
+        vega_res2 = get_vega(price, strike, dte, rfr, implied_vol, call,
+                             american, div_yield, days_in_year)
+        rho_res2 = get_rho(price, strike, dte, rfr, implied_vol, call,
+                           american, div_yield, days_in_year)
+
         iv.delete("1.0", tk.END)
         iv.insert(tk.END, implied_vol*100)
-        for output,result in [(delta2,results2['Delta']),
-                              (gamma2,results2['Gamma']),
-                              (theta2,results2['Theta'])]:
+        for output,result in [(delta2, results2['Delta']),
+                              (gamma2, results2['Gamma']),
+                              (theta2, results2['Theta']),
+                              (vega2, vega_res2),
+                              (rho2, rho_res2)]:
             output.delete("1.0", tk.END)
             output.insert(tk.END, str(round(result,4)))
 
@@ -205,31 +242,53 @@ for dollar_row in dollar_rows2:
     ttk.Label(tab2, text='$').grid(row=dollar_row, column=1)
 for pct_row in pct_rows2:
     ttk.Label(tab2, text='%').grid(row=pct_row, column=3, stick='w')
-ttk.Label(tab2, text='days in a year').grid(row=4, column=3)
+ttk.Label(tab2, text='days in a year').grid(row=5, column=3)
 
 # Run button
-ttk.Button(tab2, text="Calculate", command=calculate_iv).grid(
+ttk.Button(tab2, text="CALCULATE", command=calculate_iv).grid(
     row=0, column=5, columnspan=3, pady=(0,15))
 
 # Outputs
 ttk.Label(tab2, text="Implied volatility").grid(row=1, column=5, sticky="w",
                                                 padx=15, pady=2)
-ttk.Label(tab2, text='%').grid(row=1, column=7)
+ttk.Label(tab2, text='%').grid(row=1, column=8)
+#
 ttk.Label(tab2, text='Delta').grid(row=2, column=5, sticky="w", padx=15,
                                     pady=2)
+ttk.Label(tab2, text='$').grid(row=2, column=6)
+ttk.Label(tab2, text='/$').grid(row=2, column=8, sticky="w")
+#
 ttk.Label(tab2, text='Gamma').grid(row=3, column=5, sticky="w", padx=15,
                                     pady=2)
-ttk.Label(tab2, text='Theta').grid(row=4, column=5, sticky="w", padx=15,
-                                    pady=2)
+ttk.Label(tab2, text='$').grid(row=3, column=6)
+ttk.Label(tab2, text='/$²').grid(row=3, column=8, sticky="w")
 #
+ttk.Label(tab2, text='Theta').grid(row=4, column=5, sticky="w", padx=15,
+                                   pady=2)
+ttk.Label(tab2, text='$').grid(row=4, column=6)
+ttk.Label(tab2, text='/day').grid(row=4, column=8, sticky="w")
+#
+ttk.Label(tab2, text='Vega').grid(row=5, column=5, sticky="w", padx=15, pady=2)
+ttk.Label(tab2, text='$').grid(row=5, column=6)
+ttk.Label(tab2, text='/pp').grid(row=5, column=8, sticky="w")
+#
+ttk.Label(tab2, text='Rho').grid(row=6, column=5, sticky="w", padx=15, pady=2)
+ttk.Label(tab2, text='$').grid(row=6, column=6)
+ttk.Label(tab2, text='/pp').grid(row=6, column=8, sticky="w")
+# Resuls
 iv = tk.Text(tab2, height=1, width=8)
-iv.grid(row=1, column=6)
+iv.grid(row=1, column=7)
 delta2 = tk.Text(tab2, height=1, width=8)
-delta2.grid(row=2, column=6)
+delta2.grid(row=2, column=7)
 gamma2 = tk.Text(tab2, height=1, width=8)
-gamma2.grid(row=3, column=6)
+gamma2.grid(row=3, column=7)
 theta2 = tk.Text(tab2, height=1, width=8)
-theta2.grid(row=4, column=6)
+theta2.grid(row=4, column=7)
+vega2 = tk.Text(tab2, height=1, width=8)
+vega2.grid(row=5, column=7)
+rho2 = tk.Text(tab2, height=1, width=8)
+rho2.grid(row=6, column=7)
+
 
 
 #%% Finish
